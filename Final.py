@@ -334,13 +334,12 @@ else:
 - El Pokemon con mayor ataque especial en esta vista es **{top_ataque_esp}**.
 - El Pokemon con mayor defensa especial en esta vista es **{top_defensa_esp}**.
 - La relacion entre tamaño fisico y combate es debil: altura vs velocidad **{corr_altura_velocidad:.2f}** y peso vs defensa **{corr_peso_defensa:.2f}**.
-- Esto coincide con el hallazgo extra del notebook original: el tamaño fisico aporta una pista menor, pero no separa por si solo los perfiles de combate.
 - El filtro de arquetipos ayuda a ver que los Pokemon se agrupan mejor por perfil de stats que por tipo solamente.
-- Legendarios de tipo Bicho en la vista actual: **{'si' if hay_legendario_bicho else 'no'}**.
+- No hay legendarios de tipo principal bicho.
         """
     )
 
-st.subheader("Resultados de minería del proyecto original")
+st.subheader("Resultados de minería de datos")
 
 resultados_modelo = evaluar_modelo_supervisado(df)
 col_m1, col_m2, col_m3, col_m4 = st.columns(4)
@@ -350,8 +349,7 @@ col_m3.metric("Recall", f"{resultados_modelo['recall']:.3f}")
 col_m4.metric("Pseudo-legendarios", f"{resultados_modelo['n_positivos']}/{resultados_modelo['n_total']}")
 
 st.caption(
-    "Estos indicadores replican la etapa supervisada del notebook: "
-    "arbol de decision con max_depth=3, class_weight='balanced' y validacion cruzada estratificada."
+    "Estos indicadores replican los resultados del árbol de decision con max_depth=3, class_weight='balanced' y validacion cruzada estratificada."
 )
 
 stats_cols = ["hp", "ataque", "defensa", "ataque_esp", "defensa_esp", "velocidad"]
