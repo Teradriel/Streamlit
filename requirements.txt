@@ -1,0 +1,8 @@
+streamlit>=1.39
+requests>=2.32
+matplotlib>=3.9
+pandas>=2.2
+beautifulsoup4>=4.12
+scikit-learn>=1.5
+lxml>=5.2
+html5lib>=1.1
