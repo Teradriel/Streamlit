@@ -264,14 +264,15 @@ else:
     plt.tight_layout()
     st.pyplot(fig3)
 
-    st.markdown("**4) Distribucion de arquetipos**")
-    conteo_arquetipos = filtrado["arquetipo"].value_counts().sort_values(ascending=True)
-    fig4, ax4 = plt.subplots(figsize=(8, 5))
-    ax4.barh(conteo_arquetipos.index, conteo_arquetipos.values)
-    ax4.set_xlabel("Cantidad de Pokemon")
-    ax4.set_ylabel("Arquetipo")
-    ax4.set_title("Pokemon por arquetipo")
-    st.pyplot(fig4)
+    if filtro_arquetipo == "Todos":
+        st.markdown("**4) Distribucion de arquetipos**")
+        conteo_arquetipos = filtrado["arquetipo"].value_counts().sort_values(ascending=True)
+        fig4, ax4 = plt.subplots(figsize=(8, 5))
+        ax4.barh(conteo_arquetipos.index, conteo_arquetipos.values)
+        ax4.set_xlabel("Cantidad de Pokemon")
+        ax4.set_ylabel("Arquetipo")
+        ax4.set_title("Pokemon por arquetipo")
+        st.pyplot(fig4)
 
 st.subheader("Hallazgos y conclusiones")
 
