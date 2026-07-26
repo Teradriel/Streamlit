@@ -9,7 +9,10 @@ import requests
 import streamlit as st
 from bs4 import BeautifulSoup
 from sklearn.cluster import KMeans
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 pd.set_option("future.no_silent_downcasting", True)
 
@@ -189,6 +192,32 @@ def construir_dataset():
     return pokemon
 
 
+@st.cache_data(show_spinner=False)
+def evaluar_modelo_supervisado(df_modelo):
+    features_num = ["hp", "ataque", "defensa", "ataque_esp", "defensa_esp", "velocidad"]
+    encoder = OneHotEncoder(sparse_output=False, handle_unknown="ignore")
+    tipo_encoded = encoder.fit_transform(df_modelo[["tipo_1"]])
+    tipo_df = pd.DataFrame(tipo_encoded, columns=encoder.get_feature_names_out(), index=df_modelo.index)
+
+    x = pd.concat([df_modelo[features_num], tipo_df], axis=1)
+    y = df_modelo["pseudo_legendario"]
+
+    modelo = DecisionTreeClassifier(max_depth=3, class_weight="balanced", random_state=123)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=123)
+
+    f1 = cross_val_score(modelo, x, y, cv=cv, scoring="f1").mean()
+    precision = cross_val_score(modelo, x, y, cv=cv, scoring="precision").mean()
+    recall = cross_val_score(modelo, x, y, cv=cv, scoring="recall").mean()
+
+    return {
+        "f1": f1,
+        "precision": precision,
+        "recall": recall,
+        "n_positivos": int(y.sum()),
+        "n_total": int(len(y)),
+    }
+
+
 with st.spinner("Construyendo dataset (primera ejecucion puede tardar)..."):
     df = construir_dataset()
 
@@ -290,6 +319,7 @@ else:
     top_defensa_esp = filtrado.sort_values("defensa_esp", ascending=False).head(1)["nombre_es"].iloc[0]
     corr_altura_velocidad = filtrado["altura_cm"].corr(filtrado["velocidad"])
     corr_peso_defensa = filtrado["peso_kg"].corr(filtrado["defensa"])
+    hay_legendario_bicho = bool(((filtrado["legendario"]) & (filtrado["tipo_1"] == "Bicho")).any())
 
     st.markdown(
         f"""
@@ -306,9 +336,38 @@ else:
 - La relacion entre tamaño fisico y combate es debil: altura vs velocidad **{corr_altura_velocidad:.2f}** y peso vs defensa **{corr_peso_defensa:.2f}**.
 - Esto coincide con el hallazgo extra del notebook original: el tamaño fisico aporta una pista menor, pero no separa por si solo los perfiles de combate.
 - El filtro de arquetipos ayuda a ver que los Pokemon se agrupan mejor por perfil de stats que por tipo solamente.
-- No hay Pokémon legendarios con tipo principal bicho.
+- Legendarios de tipo Bicho en la vista actual: **{'si' if hay_legendario_bicho else 'no'}**.
         """
     )
+
+st.subheader("Resultados de minería del proyecto original")
+
+resultados_modelo = evaluar_modelo_supervisado(df)
+col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+col_m1.metric("F1 (CV 5 folds)", f"{resultados_modelo['f1']:.3f}")
+col_m2.metric("Precision", f"{resultados_modelo['precision']:.3f}")
+col_m3.metric("Recall", f"{resultados_modelo['recall']:.3f}")
+col_m4.metric("Pseudo-legendarios", f"{resultados_modelo['n_positivos']}/{resultados_modelo['n_total']}")
+
+st.caption(
+    "Estos indicadores replican la etapa supervisada del notebook: "
+    "arbol de decision con max_depth=3, class_weight='balanced' y validacion cruzada estratificada."
+)
+
+stats_cols = ["hp", "ataque", "defensa", "ataque_esp", "defensa_esp", "velocidad"]
+perfil_stats = filtrado.groupby("arquetipo")[stats_cols].mean().round(1)
+
+if len(perfil_stats) > 0:
+    st.markdown("**Perfil promedio de stats por arquetipo (subset filtrado)**")
+    fig5, ax5 = plt.subplots(figsize=(11, 4.8))
+    perfil_stats.plot(kind="bar", ax=ax5)
+    ax5.set_xlabel("Arquetipo")
+    ax5.set_ylabel("Valor promedio")
+    ax5.set_title("Comparacion de stats por arquetipo")
+    ax5.tick_params(axis="x", labelrotation=20)
+    ax5.legend(title="Stat", bbox_to_anchor=(1.02, 1), loc="upper left")
+    plt.tight_layout()
+    st.pyplot(fig5)
 
 st.subheader("Datos filtrados")
 st.dataframe(
