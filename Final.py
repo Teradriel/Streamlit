@@ -267,11 +267,12 @@ else:
     if filtro_arquetipo == "Todos":
         st.markdown("**4) Distribucion de arquetipos**")
         conteo_arquetipos = filtrado["arquetipo"].value_counts().sort_values(ascending=True)
-        fig4, ax4 = plt.subplots(figsize=(4, 3))
+        fig4, ax4 = plt.subplots(figsize=(3.2, 2.2))
         ax4.barh(conteo_arquetipos.index, conteo_arquetipos.values)
-        ax4.set_xlabel("Cantidad de Pokemon")
-        ax4.set_ylabel("Arquetipo")
-        ax4.set_title("Pokemon por arquetipo")
+        ax4.set_xlabel("Cant.", fontsize=9)
+        ax4.set_ylabel("", fontsize=9)
+        ax4.set_title("Pokemon por arquetipo", fontsize=10)
+        ax4.tick_params(axis="both", labelsize=8)
         st.pyplot(fig4)
 
 st.subheader("Hallazgos y conclusiones")
