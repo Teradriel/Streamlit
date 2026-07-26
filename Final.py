@@ -183,13 +183,15 @@ min_stats = int(df["suma_estadisticas"].min())
 max_stats = int(df["suma_estadisticas"].max())
 rango_stats = st.sidebar.slider("Rango suma de estadisticas", min_stats, max_stats, (min_stats, max_stats))
 
-filtro_legendario = st.sidebar.selectbox("Categoria", ["Todos", "Solo legendarios", "Solo no legendarios"])
+filtro_legendario = st.sidebar.selectbox("Categoria", ["Todos", "Solo legendarios", "Solo no legendarios", "Solo pseudo-legendarios"])
 
 filtrado = df[df["tipo_1"].isin(tipos_sel)].copy()
 filtrado = filtrado[filtrado["suma_estadisticas"].between(rango_stats[0], rango_stats[1])]
 
 if filtro_legendario == "Solo legendarios":
     filtrado = filtrado[filtrado["legendario"]]
+elif filtro_legendario == "Solo pseudo-legendarios":
+    filtrado = filtrado[filtrado["pseudo_legendario"]]
 elif filtro_legendario == "Solo no legendarios":
     filtrado = filtrado[~filtrado["legendario"]]
 
@@ -247,6 +249,11 @@ else:
     prom_stats = filtrado["suma_estadisticas"].mean()
     pct_legend = (filtrado["legendario"].mean() * 100) if len(filtrado) else 0
     top_ataque = filtrado.sort_values("ataque", ascending=False).head(1)["nombre_es"].iloc[0]
+    top_defensa = filtrado.sort_values("defensa", ascending=False).head(1)["nombre_es"].iloc[0]
+    top_velocidad = filtrado.sort_values("velocidad", ascending=False).head(1)["nombre_es"].iloc[0]
+    top_hp = filtrado.sort_values("hp", ascending=False).head(1)["nombre_es"].iloc[0]
+    top_ataque_esp = filtrado.sort_values("ataque_esp", ascending=False).head(1)["nombre_es"].iloc[0]
+    top_defensa_esp = filtrado.sort_values("defensa_esp", ascending=False).head(1)["nombre_es"].iloc[0]
 
     st.markdown(
         f"""
@@ -254,6 +261,12 @@ else:
 - La suma promedio de estadisticas en el recorte filtrado es **{prom_stats:.1f}**.
 - Los legendarios representan **{pct_legend:.1f}%** de los datos filtrados.
 - El Pokemon con mayor ataque en esta vista es **{top_ataque}**.
+- El Pokemon con mayor defensa en esta vista es **{top_defensa}**.
+- El Pokemon con mayor velocidad en esta vista es **{top_velocidad}**.
+- El Pokemon con mayor vida en esta vista es **{top_hp}**.
+- El Pokemon con mayor ataque especial en esta vista es **{top_ataque_esp}**.
+- El Pokemon con mayor defensa especial en esta vista es **{top_defensa_esp}**.
+- No hay Pokémon legendarios con tipo principal bicho.
         """
     )
 
