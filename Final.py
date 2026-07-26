@@ -227,13 +227,13 @@ else:
         st.pyplot(fig2)
 
     st.markdown("**3) Suma de estadisticas por tipo (boxplot)**")
-    tipos_top = filtrado["tipo_1"].value_counts().head(8).index.tolist()
+    tipos_top = filtrado["tipo_1"].value_counts().index.tolist()
     base_box = filtrado[filtrado["tipo_1"].isin(tipos_top)][["tipo_1", "suma_estadisticas"]]
     fig3, ax3 = plt.subplots(figsize=(11, 5))
     base_box.boxplot(column="suma_estadisticas", by="tipo_1", ax=ax3, rot=25)
     ax3.set_xlabel("Tipo")
     ax3.set_ylabel("Suma de estadisticas")
-    ax3.set_title("Dispersion por tipo principal (top 8)")
+    ax3.set_title("Dispersion por tipo principal")
     plt.suptitle("")
     plt.tight_layout()
     st.pyplot(fig3)
