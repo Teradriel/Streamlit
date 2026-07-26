@@ -8,6 +8,8 @@ import pandas as pd
 import requests
 import streamlit as st
 from bs4 import BeautifulSoup
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 pd.set_option("future.no_silent_downcasting", True)
 
@@ -168,6 +170,22 @@ def construir_dataset():
 
     pokemon["pseudo_legendario"] = (~pokemon["legendario"]) & (~pokemon["mitico"]) & (pokemon["suma_estadisticas"] == 600)
 
+    features_combate = ["hp", "ataque", "defensa", "ataque_esp", "defensa_esp", "velocidad"]
+    escalador = StandardScaler()
+    combate_escalado = escalador.fit_transform(pokemon[features_combate])
+
+    kmeans = KMeans(n_clusters=5, random_state=123, n_init=10)
+    pokemon["cluster"] = kmeans.fit_predict(combate_escalado)
+
+    nombres_cluster = {
+        0: "Forma base / sin evolucionar",
+        1: "Atacante especial",
+        2: "Atacante fisico robusto",
+        3: "Barredor veloz",
+        4: "Muro defensivo",
+    }
+    pokemon["arquetipo"] = pokemon["cluster"].map(nombres_cluster)
+
     return pokemon
 
 
@@ -179,6 +197,9 @@ st.sidebar.header("Filtros")
 tipos_disponibles = sorted(df["tipo_1"].dropna().unique().tolist())
 tipos_sel = st.sidebar.multiselect("Tipo principal", tipos_disponibles, default=tipos_disponibles)
 
+arquetipos_disponibles = ["Todos"] + sorted(df["arquetipo"].dropna().unique().tolist())
+filtro_arquetipo = st.sidebar.selectbox("Arquetipo", arquetipos_disponibles)
+
 min_stats = int(df["suma_estadisticas"].min())
 max_stats = int(df["suma_estadisticas"].max())
 rango_stats = st.sidebar.slider("Rango suma de estadisticas", min_stats, max_stats, (min_stats, max_stats))
@@ -187,6 +208,9 @@ filtro_legendario = st.sidebar.selectbox("Categoria", ["Todos", "Solo legendario
 
 filtrado = df[df["tipo_1"].isin(tipos_sel)].copy()
 filtrado = filtrado[filtrado["suma_estadisticas"].between(rango_stats[0], rango_stats[1])]
+
+if filtro_arquetipo != "Todos":
+    filtrado = filtrado[filtrado["arquetipo"] == filtro_arquetipo]
 
 if filtro_legendario == "Solo legendarios":
     filtrado = filtrado[filtrado["legendario"]]
@@ -240,6 +264,15 @@ else:
     plt.tight_layout()
     st.pyplot(fig3)
 
+    st.markdown("**4) Distribucion de arquetipos**")
+    conteo_arquetipos = filtrado["arquetipo"].value_counts().sort_values(ascending=True)
+    fig4, ax4 = plt.subplots(figsize=(8, 5))
+    ax4.barh(conteo_arquetipos.index, conteo_arquetipos.values)
+    ax4.set_xlabel("Cantidad de Pokemon")
+    ax4.set_ylabel("Arquetipo")
+    ax4.set_title("Pokemon por arquetipo")
+    st.pyplot(fig4)
+
 st.subheader("Hallazgos y conclusiones")
 
 if len(filtrado) == 0:
@@ -254,10 +287,13 @@ else:
     top_hp = filtrado.sort_values("hp", ascending=False).head(1)["nombre_es"].iloc[0]
     top_ataque_esp = filtrado.sort_values("ataque_esp", ascending=False).head(1)["nombre_es"].iloc[0]
     top_defensa_esp = filtrado.sort_values("defensa_esp", ascending=False).head(1)["nombre_es"].iloc[0]
+    corr_altura_velocidad = filtrado["altura_cm"].corr(filtrado["velocidad"])
+    corr_peso_defensa = filtrado["peso_kg"].corr(filtrado["defensa"])
 
     st.markdown(
         f"""
 - El tipo mas frecuente en la seleccion actual es **{tipo_mas_frecuente}**.
+- El arquetipo mas frecuente en la seleccion actual es **{filtrado['arquetipo'].value_counts().idxmax()}**.
 - La suma promedio de estadisticas en el recorte filtrado es **{prom_stats:.1f}**.
 - Los legendarios representan **{pct_legend:.1f}%** de los datos filtrados.
 - El Pokemon con mayor ataque en esta vista es **{top_ataque}**.
@@ -266,6 +302,9 @@ else:
 - El Pokemon con mayor vida en esta vista es **{top_hp}**.
 - El Pokemon con mayor ataque especial en esta vista es **{top_ataque_esp}**.
 - El Pokemon con mayor defensa especial en esta vista es **{top_defensa_esp}**.
+- La relacion entre tamaño fisico y combate es debil: altura vs velocidad **{corr_altura_velocidad:.2f}** y peso vs defensa **{corr_peso_defensa:.2f}**.
+- Esto coincide con el hallazgo extra del notebook original: el tamaño fisico aporta una pista menor, pero no separa por si solo los perfiles de combate.
+- El filtro de arquetipos ayuda a ver que los Pokemon se agrupan mejor por perfil de stats que por tipo solamente.
 - No hay Pokémon legendarios con tipo principal bicho.
         """
     )
@@ -278,6 +317,7 @@ st.dataframe(
             "nombre_es",
             "tipo_1",
             "tipo_2",
+            "arquetipo",
             "hp",
             "ataque",
             "defensa",
